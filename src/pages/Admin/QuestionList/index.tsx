@@ -3,11 +3,8 @@ import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {
   FooterToolbar,
-  ModalForm,
   PageContainer,
   ProDescriptions,
-  ProFormText,
-  ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
 import '@umijs/max';
@@ -15,27 +12,30 @@ import { Button, Drawer, Input, message } from 'antd';
 import React, { useRef, useState } from 'react';
 import type { FormValueType } from './components/UpdateForm';
 import UpdateForm from './components/UpdateForm';
-import { request } from '@umijs/max';
-import { getQuestionListUsingGet1 } from '@/services/Server/questionController';
-import { getQuestionListUsingGet } from '@/services/Server/questionAdminController';
+import { addQuestionUsingPost, deleteQuestionByIdUsingDelete, getQuestionListUsingGet } from '@/services/Server/questionAdminController';
+import CreateForm from './components/CreateForm';
 
 /**
  * @en-US Add node
  * @zh-CN 添加节点
  * @param fields
  */
-const handleAdd = async (fields: API.RuleListItem) => {
+const handleAdd = async (fields: API.QuestionAddRequest) => {
   const hide = message.loading('正在添加');
   try {
-    await addRule({
+    const res = await addQuestionUsingPost({
       ...fields,
     });
+    if (res.code != 0) {
+      message.error(res.message);
+    } else {
+      message.success('添加成功')
+    }
     hide();
-    message.success('Added successfully');
     return true;
-  } catch (error) {
+  } catch (error: any) {
     hide();
-    message.error('Adding failed, please try again!');
+    message.error('添加失败 '+error.message);
     return false;
   }
 };
@@ -70,19 +70,21 @@ const handleUpdate = async (fields: FormValueType) => {
  *
  * @param selectedRows
  */
-const handleRemove = async (selectedRows: API.RuleListItem[]) => {
+const handleRemove = async (selectedRows: API.QuestionVO[]) => {
   const hide = message.loading('正在删除');
   if (!selectedRows) return true;
   try {
-    await removeRule({
-      key: selectedRows.map((row) => row.key),
-    });
+    selectedRows.forEach(async (e) => {
+      await deleteQuestionByIdUsingDelete({
+        questionId: e.id as string
+      });
+    })
     hide();
-    message.success('Deleted successfully and will refresh soon');
+    message.success('删除成功');
     return true;
-  } catch (error) {
+  } catch (error: any) {
     hide();
-    message.error('Delete failed, please try again');
+    message.error('删除失败 ',error.message);
     return false;
   }
 };
@@ -101,7 +103,6 @@ const QuestionList: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<API.QuestionVO>();
   const [selectedRowsState, setSelectedRows] = useState<API.QuestionVO[]>([]);
-
   /**
    * @en-US International configuration
    * @zh-CN 国际化配置
@@ -128,7 +129,7 @@ const QuestionList: React.FC = () => {
       title: '题目答案',
       dataIndex: 'answer',
       ellipsis: true,
-      valueType: "text"
+      valueType: "textarea"
     },
     {
       title: '题目标签',
@@ -141,14 +142,21 @@ const QuestionList: React.FC = () => {
       valueType: "jsonCode"
     },
     {
+      title: '判题用例',
+      dataIndex: 'judgeCase',
+      valueType: "jsonCode"
+    },
+    {
       title: '创建时间',
       dataIndex: 'createTime',
-      valueType: "dateTime"
+      valueType: "dateTime",
+      hideInForm: true
     },
     {
       title: '更新时间',
       dataIndex: 'updateTime',
-      valueType: "dateTime"
+      valueType: "dateTime",
+      hideInForm: true
     },
     {
       title: '操作',
@@ -192,9 +200,13 @@ const QuestionList: React.FC = () => {
         headerTitle={'查询表格'}
         actionRef={actionRef}
         scroll={{ x: 'max-content' }}
-        rowKey="key"
+        rowKey="id"
         search={{
           labelWidth: 100,
+        }}
+        pagination={{
+          defaultPageSize: 5,
+          showSizeChanger: true,
         }}
         toolBarRender={() => [
           <Button
@@ -204,7 +216,7 @@ const QuestionList: React.FC = () => {
               handleModalOpen(true);
             }}
           >
-            <PlusOutlined /> 新建
+            <PlusOutlined /> 新增题目
           </Button>,
         ]}
         request={fetchList}
@@ -228,9 +240,6 @@ const QuestionList: React.FC = () => {
                 {selectedRowsState.length}
               </a>{' '}
               项 &nbsp;&nbsp;
-              <span>
-                服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre + item.callNo!, 0)} 万
-              </span>
             </div>
           }
         >
@@ -243,36 +252,18 @@ const QuestionList: React.FC = () => {
           >
             批量删除
           </Button>
-          <Button type="primary">批量审批</Button>
         </FooterToolbar>
       )}
-      <ModalForm
-        title={'新建规则'}
-        width="400px"
-        open={createModalOpen}
-        onOpenChange={handleModalOpen}
-        onFinish={async (value) => {
-          const success = await handleAdd(value as API.RuleListItem);
-          if (success) {
-            handleModalOpen(false);
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }
+      <CreateForm 
+        onCancel={() => {
+          handleModalOpen(false);
         }}
-      >
-        <ProFormText
-          rules={[
-            {
-              required: true,
-              message: '规则名称为必填项',
-            },
-          ]}
-          width="md"
-          name="name"
+        onSubmit={async (values) => {
+          handleAdd(values);
+          handleModalOpen(false);
+        }}
+        visible={createModalOpen}    
         />
-        <ProFormTextArea width="md" name="desc" />
-      </ModalForm>
       <UpdateForm
         onSubmit={async (value) => {
           const success = await handleUpdate(value);
@@ -303,15 +294,15 @@ const QuestionList: React.FC = () => {
         }}
         closable={false}
       >
-        {currentRow?.name && (
+        {currentRow?.title && (
           <ProDescriptions<API.RuleListItem>
             column={2}
-            title={currentRow?.name}
+            title={currentRow?.title}
             request={async () => ({
               data: currentRow || {},
             })}
             params={{
-              id: currentRow?.name,
+              id: currentRow?.id,
             }}
             columns={columns as ProDescriptionsItemProps<API.RuleListItem>[]}
           />
