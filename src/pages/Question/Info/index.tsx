@@ -1,48 +1,48 @@
-import { getQuestionByIdUsingGet1 } from "@/services/Server/questionController";
-import { CloudUploadOutlined } from "@ant-design/icons";
-import { PageContainer, ProCard } from "@ant-design/pro-components";
-import { useParams } from "@umijs/max";
-import { Button, Select, Space, Tag, Typography, message } from "antd";
-import AceEditor from 'react-ace'
-import Paragraph from "antd/lib/typography/Paragraph";
-import Title from "antd/lib/typography/Title";
-import { useEffect, useState } from "react";
+import { getQuestionByIdUsingGet1 } from '@/services/Server/questionController';
+import { CloudUploadOutlined } from '@ant-design/icons';
+import { PageContainer, ProCard } from '@ant-design/pro-components';
+import { useParams } from '@umijs/max';
+import { Button, Select, Space, Tag, Typography, message } from 'antd';
+import Paragraph from 'antd/lib/typography/Paragraph';
+import Title from 'antd/lib/typography/Title';
+import { useEffect, useState } from 'react';
+import AceEditor from 'react-ace';
 // AceEditor相关资源导入
-import "ace-builds/src-noconflict/mode-java";
-import "ace-builds/src-noconflict/mode-golang";
-import "ace-builds/src-noconflict/theme-monokai";
-import "ace-builds/src-noconflict/theme-tomorrow";
-import "ace-builds/src-noconflict/theme-github";
-import "ace-builds/src-noconflict/ext-language_tools";
+import 'ace-builds/src-noconflict/ext-language_tools';
+import 'ace-builds/src-noconflict/mode-golang';
+import 'ace-builds/src-noconflict/mode-java';
+import 'ace-builds/src-noconflict/theme-github';
+import 'ace-builds/src-noconflict/theme-monokai';
+import 'ace-builds/src-noconflict/theme-tomorrow';
 
 const Info: React.FC = () => {
-  const [question, setQuestion] = useState<API.QuestionVO>()
-  const [language, setLanguage] = useState<string>("java")
-  const [mode, setMode] = useState<string>("acm")
-  const [code, setCode] = useState<string>()
-  const [theme, setTheme] = useState<string>("tomorrow")
-  const params = useParams()
-  const id = params.id as string
+  const [question, setQuestion] = useState<API.QuestionVO>();
+  const [language, setLanguage] = useState<string>('java');
+  const [mode, setMode] = useState<string>('acm');
+  const [code, setCode] = useState<string>();
+  const [theme, setTheme] = useState<string>('tomorrow');
+  const params = useParams();
+  const id = params.id as string;
   useEffect(() => {
     if (!id) {
-      return
+      return;
     }
     try {
       (async () => {
         const res = await getQuestionByIdUsingGet1({
-          questionId: id
-        })
+          questionId: id,
+        });
         if (res.data) {
-          setQuestion(res.data)
+          setQuestion(res.data);
         }
-      })()
+      })();
     } catch (error: any) {
-      message.error('获取题目信息失败 ' + error.message)
+      message.error('获取题目信息失败 ' + error.message);
     }
-  }, [])
+  }, []);
   return (
     <PageContainer
-      extra={(
+      extra={
         <Button
           type="primary"
           size="middle"
@@ -50,32 +50,38 @@ const Info: React.FC = () => {
           onClick={() => {
             console.log(code);
           }}
-        >提交代码</Button>
-      )}
+        >
+          提交代码
+        </Button>
+      }
     >
       <ProCard gutter={10} ghost>
-        <ProCard type="inner" bordered colSpan="35%" bodyStyle={{ height: 550, maxHeight: 550 }}>
+        <ProCard type="inner" bordered colSpan="35%" bodyStyle={{ height: 550, maxHeight: 600,overflowY: 'scroll' }}>
           <Typography>
             <Title level={4}>{question?.title}</Title>
-            <Space>
-              {question?.tags?.map(e => (
-                <Tag color="blue" key={e}>{e}</Tag>
-              ))}
-            </Space>
-            <Paragraph
+            <Space
               style={{
-                marginTop: 15
+                marginBottom: 15,
               }}
             >
-              {question?.description}
-            </Paragraph>
+              {question?.tags?.map((e) => (
+                <Tag color="blue" key={e}>
+                  {e}
+                </Tag>
+              ))}
+            </Space>
+            {
+              question?.description?.split("\n").map(e => (
+                <Paragraph>{e}</Paragraph>
+              ))
+            }
           </Typography>
         </ProCard>
-        <ProCard type="inner" bordered bodyStyle={{ height: 550, maxHeight: 550 }}>
+        <ProCard type="inner" bordered bodyStyle={{ height: 550, maxHeight: 600 }}>
           <Space
             wrap
             style={{
-              marginBottom: 15
+              marginBottom: 15,
             }}
           >
             <div>编程语言</div>
@@ -84,7 +90,7 @@ const Info: React.FC = () => {
               style={{ width: 120 }}
               title="编程语言"
               onChange={(value) => {
-                setLanguage(value)
+                setLanguage(value);
               }}
               options={[
                 { value: 'java', label: 'Java' },
@@ -98,7 +104,7 @@ const Info: React.FC = () => {
               defaultValue="acm"
               style={{ width: 120 }}
               onChange={(value) => {
-                setMode(value)
+                setMode(value);
               }}
               options={[
                 { value: 'acm', label: 'ACM' },
@@ -112,7 +118,7 @@ const Info: React.FC = () => {
               defaultValue="tomorrow"
               style={{ width: 120 }}
               onChange={(value) => {
-                setTheme(value)
+                setTheme(value);
               }}
               options={[
                 { value: 'tomorrow', label: 'Tomorrow' },
@@ -131,7 +137,7 @@ const Info: React.FC = () => {
             height="90%"
             // onLoad={this.onLoad}
             onChange={(e) => {
-              setCode(e)
+              setCode(e);
             }}
             fontSize={14}
             showPrintMargin={false}
@@ -144,7 +150,8 @@ const Info: React.FC = () => {
               enableSnippets: false,
               showLineNumbers: true,
               tabSize: 2,
-            }} />
+            }}
+          />
         </ProCard>
       </ProCard>
     </PageContainer>

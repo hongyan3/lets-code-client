@@ -1,155 +1,92 @@
-import {
-  ProFormDateTimePicker,
-  ProFormRadio,
-  ProFormSelect,
-  ProFormText,
-  ProFormTextArea,
-  StepsForm,
-} from '@ant-design/pro-components';
-import '@umijs/max';
-import { Modal } from 'antd';
-import React from 'react';
-export type FormValueType = {
-  target?: string;
-  template?: string;
-  type?: string;
-  time?: string;
-  frequency?: string;
-} & Partial<API.RuleListItem>;
-export type UpdateFormProps = {
-  onCancel: (flag?: boolean, formVals?: FormValueType) => void;
-  onSubmit: (values: FormValueType) => Promise<void>;
-  updateModalOpen: boolean;
-  values: Partial<API.RuleListItem>;
+import { ProColumns, ProFormInstance, ProTable } from '@ant-design/pro-components';
+import { Modal, message } from 'antd';
+import { values } from 'lodash';
+import React, { useEffect, useRef } from 'react';
+
+export type Props = {
+  onCancel: () => void;
+  onSubmit: (values: API.QuestionUpdateRequest) => Promise<void>;
+  visible: boolean;
+  origin: API.QuestionVO;
 };
-const UpdateForm: React.FC<UpdateFormProps> = (props) => {
+const updateColums: ProColumns<API.QuestionUpdateRequest>[] = [
+  {
+    title: '题目ID',
+    dataIndex: 'id',
+    valueType: 'text',
+  },
+  {
+    title: '题目标题',
+    dataIndex: 'title',
+    valueType: 'text',
+  },
+  {
+    title: '题目描述',
+    dataIndex: 'description',
+    ellipsis: true,
+    valueType: 'textarea',
+  },
+  {
+    title: '题目答案',
+    dataIndex: 'answer',
+    ellipsis: true,
+    valueType: 'textarea',
+  },
+  {
+    title: '题目标签',
+    dataIndex: 'tags',
+    valueType: 'jsonCode',
+  },
+  {
+    title: '判题配置',
+    dataIndex: 'judgeConfig',
+    valueType: 'jsonCode',
+  },
+  {
+    title: '判题用例',
+    dataIndex: 'judgeCase',
+    valueType: 'jsonCode',
+  },
+];
+const UpdateForm: React.FC<Props> = (Props) => {
+  const { visible, onCancel, onSubmit, origin } = Props;
+  const fromRef = useRef<ProFormInstance>();
+  useEffect(() => {
+    if (fromRef) {
+      fromRef.current?.setFieldsValue(origin);
+    }
+  }, [origin]);
   return (
-    <StepsForm
-      stepsProps={{
-        size: 'small',
-      }}
-      stepsFormRender={(dom, submitter) => {
-        return (
-          <Modal
-            width={640}
-            bodyStyle={{
-              padding: '32px 40px 48px',
-            }}
-            destroyOnClose
-            title={'规则配置'}
-            open={props.updateModalOpen}
-            footer={submitter}
-            onCancel={() => {
-              props.onCancel();
-            }}
-          >
-            {dom}
-          </Modal>
-        );
-      }}
-      onFinish={props.onSubmit}
-    >
-      <StepsForm.StepForm
-        initialValues={{
-          name: props.values.name,
-          desc: props.values.desc,
+    <Modal open={visible} onCancel={() => onCancel?.()} footer={null}>
+      <ProTable
+        type="form"
+        columns={updateColums}
+        formRef={fromRef}
+        onSubmit={async (values) => {
+          try {
+            const { id, title, description, answer, tags, judgeConfig, judgeCase } = values;
+            const jsonConfigJson = JSON.parse(judgeConfig);
+            const tagsJson = JSON.parse(tags);
+            const judgeCaseJson = JSON.parse(judgeCase);
+            onSubmit?.({
+              id,
+              title,
+              description,
+              answer,
+              tags: tagsJson,
+              judgeConfig: jsonConfigJson,
+              judgeCase: judgeCaseJson,
+            });
+          } catch (error: any) {
+            message.error(error.message);
+          }
+          return;
         }}
-        title={'基本信息'}
-      >
-        <ProFormText
-          name="name"
-          label={'规则名称'}
-          width="md"
-          rules={[
-            {
-              required: true,
-              message: '请输入规则名称！',
-            },
-          ]}
-        />
-        <ProFormTextArea
-          name="desc"
-          width="md"
-          label={'规则描述'}
-          placeholder={'请输入至少五个字符'}
-          rules={[
-            {
-              required: true,
-              message: '请输入至少五个字符的规则描述！',
-              min: 5,
-            },
-          ]}
-        />
-      </StepsForm.StepForm>
-      <StepsForm.StepForm
-        initialValues={{
-          target: '0',
-          template: '0',
+        onReset={() => {
+          fromRef.current?.setFieldsValue(origin);
         }}
-        title={'配置规则属性'}
-      >
-        <ProFormSelect
-          name="target"
-          width="md"
-          label={'监控对象'}
-          valueEnum={{
-            0: '表一',
-            1: '表二',
-          }}
-        />
-        <ProFormSelect
-          name="template"
-          width="md"
-          label={'规则模板'}
-          valueEnum={{
-            0: '规则模板一',
-            1: '规则模板二',
-          }}
-        />
-        <ProFormRadio.Group
-          name="type"
-          label={'规则类型'}
-          options={[
-            {
-              value: '0',
-              label: '强',
-            },
-            {
-              value: '1',
-              label: '弱',
-            },
-          ]}
-        />
-      </StepsForm.StepForm>
-      <StepsForm.StepForm
-        initialValues={{
-          type: '1',
-          frequency: 'month',
-        }}
-        title={'设定调度周期'}
-      >
-        <ProFormDateTimePicker
-          name="time"
-          width="md"
-          label={'开始时间'}
-          rules={[
-            {
-              required: true,
-              message: '请选择开始时间！',
-            },
-          ]}
-        />
-        <ProFormSelect
-          name="frequency"
-          label={'监控对象'}
-          width="md"
-          valueEnum={{
-            month: '月',
-            week: '周',
-          }}
-        />
-      </StepsForm.StepForm>
-    </StepsForm>
+      />
+    </Modal>
   );
 };
 export default UpdateForm;

@@ -2,9 +2,8 @@ import {
   ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Modal } from 'antd';
-import { json } from 'express';
-import React from 'react';
+import { Modal, message } from 'antd';
+import React, { useState } from 'react';
 
 export type Props = {
   onCancel: () => void;
@@ -45,18 +44,32 @@ const createColums: ProColumns<API.QuestionAddRequest>[] = [
     valueType: "jsonCode"
   },
 ];
-const CreateModal: React.FC<Props> = (Props) => {
+const CreateForm: React.FC<Props> = (Props) => {
   const {visible,onCancel,onSubmit} = Props
   return <Modal open={visible} onCancel={() => onCancel?.()} footer={null}>
     <ProTable 
       type='form' 
-      columns={createColums} 
+      columns={createColums}
       onSubmit={async (values) => {
-        console.log(values);
-        
-        // onSubmit?.(values)
+          try{
+            const {title,description,answer,tags,judgeConfig,judgeCase} = values
+            const jsonConfigJson = JSON.parse(judgeConfig)
+            const tagsJson = JSON.parse(tags)
+            const judgeCaseJson = JSON.parse(judgeCase)
+            onSubmit?.({
+              title,
+              description,
+              answer,
+              tags: tagsJson,
+              judgeConfig: jsonConfigJson,
+              judgeCase: judgeCaseJson
+            })
+          } catch(error :any) {
+            message.error(error.message)
+          }
+        return
       }}
     />
   </Modal>;
 }
-export default CreateModal;
+export default CreateForm;

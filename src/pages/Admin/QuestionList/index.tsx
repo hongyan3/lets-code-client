@@ -1,4 +1,10 @@
-import { addRule, removeRule, rule, updateRule } from '@/services/ant-design-pro/api';
+import {
+  addQuestionUsingPost,
+  deleteQuestionByIdUsingDelete,
+  getQuestionListUsingGet,
+  updateQuestionUsingPut,
+} from '@/services/Server/questionAdminController';
+import { updateRule } from '@/services/ant-design-pro/api';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns, ProDescriptionsItemProps } from '@ant-design/pro-components';
 import {
@@ -8,12 +14,11 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import '@umijs/max';
-import { Button, Drawer, Input, message } from 'antd';
+import { Button, Drawer, message } from 'antd';
 import React, { useRef, useState } from 'react';
-import type { FormValueType } from './components/UpdateForm';
-import UpdateForm from './components/UpdateForm';
-import { addQuestionUsingPost, deleteQuestionByIdUsingDelete, getQuestionListUsingGet } from '@/services/Server/questionAdminController';
 import CreateForm from './components/CreateForm';
+import UpdateForm from './components/UpdateForm';
+import { values } from 'lodash';
 
 /**
  * @en-US Add node
@@ -29,13 +34,13 @@ const handleAdd = async (fields: API.QuestionAddRequest) => {
     if (res.code != 0) {
       message.error(res.message);
     } else {
-      message.success('添加成功')
+      message.success('添加成功');
     }
     hide();
     return true;
   } catch (error: any) {
     hide();
-    message.error('添加失败 '+error.message);
+    message.error('添加失败 ' + error.message);
     return false;
   }
 };
@@ -46,16 +51,15 @@ const handleAdd = async (fields: API.QuestionAddRequest) => {
  *
  * @param fields
  */
-const handleUpdate = async (fields: FormValueType) => {
+const handleUpdate = async (fields: API.QuestionUpdateRequest) => {
   const hide = message.loading('Configuring');
   try {
-    await updateRule({
-      name: fields.name,
-      desc: fields.desc,
-      key: fields.key,
-    });
+    const res = await updateQuestionUsingPut(fields)
+    if (res.code != 0) {
+      message.error(res.message);
+    }
     hide();
-    message.success('Configuration is successful');
+    message.success('更新成功');
     return true;
   } catch (error) {
     hide();
@@ -76,15 +80,15 @@ const handleRemove = async (selectedRows: API.QuestionVO[]) => {
   try {
     selectedRows.forEach(async (e) => {
       await deleteQuestionByIdUsingDelete({
-        questionId: e.id as string
+        questionId: e.id as string,
       });
-    })
+    });
     hide();
     message.success('删除成功');
     return true;
   } catch (error: any) {
     hide();
-    message.error('删除失败 ',error.message);
+    message.error('删除失败 ', error.message);
     return false;
   }
 };
@@ -112,68 +116,75 @@ const QuestionList: React.FC = () => {
     {
       title: '题目ID',
       dataIndex: 'id',
-      valueType: "text"
+      valueType: 'text',
+      width: 100
     },
     {
       title: '题目标题',
       dataIndex: 'title',
-      valueType: "text"
+      valueType: 'text',
+      width: 200
     },
     {
       title: '题目描述',
       dataIndex: 'description',
       ellipsis: true,
-      valueType: "text"
+      valueType: 'text',
+      width: 300
     },
     {
       title: '题目答案',
       dataIndex: 'answer',
       ellipsis: true,
-      valueType: "textarea"
+      valueType: 'textarea',
+      width: 300
     },
     {
       title: '题目标签',
       dataIndex: 'tags',
-      valueType: "jsonCode"
+      valueType: 'jsonCode',
+      width: 150
     },
     {
       title: '判题配置',
       dataIndex: 'judgeConfig',
-      valueType: "jsonCode"
+      valueType: 'jsonCode',
+      width: 200
     },
     {
       title: '判题用例',
       dataIndex: 'judgeCase',
-      valueType: "jsonCode"
+      valueType: 'jsonCode',
+      width: 200
     },
     {
       title: '创建时间',
       dataIndex: 'createTime',
-      valueType: "dateTime",
-      hideInForm: true
+      valueType: 'dateTime',
+      hideInForm: true,
+      width: 200
     },
     {
       title: '更新时间',
       dataIndex: 'updateTime',
-      valueType: "dateTime",
-      hideInForm: true
+      valueType: 'dateTime',
+      hideInForm: true,
+      width: 200
     },
     {
       title: '操作',
       dataIndex: 'option',
       valueType: 'option',
+      width: 200,
       render: (_, record) => [
         <a
           key="config"
           onClick={() => {
-            handleUpdateModalOpen(true);
+            handleUpdateModalOpen(true);            
             setCurrentRow(record);
           }}
         >
-          配置
-        </a>,
-        <a key="subscribeAlert" href="https://procomponents.ant.design/">
-          订阅警报
+          修改
         </a>,
       ],
     },
@@ -186,24 +197,24 @@ const QuestionList: React.FC = () => {
     options?: { [key: string]: any },
   ) => {
     const res = await getQuestionListUsingGet({
-      ...params
-    })
+      ...params,
+    });
     return {
       data: res.data?.records || [],
-      success: res.code == 0? true : false,
-      total: res.data?.total || 0
-    }
-  }
+      success: res.code == 0 ? true : false,
+      total: res.data?.total || 0,
+    };
+  };
   return (
     <PageContainer>
       <ProTable<API.QuestionVO, API.PageParams>
         headerTitle={'查询表格'}
         actionRef={actionRef}
-        scroll={{ x: 'max-content' }}
         rowKey="id"
         search={{
           labelWidth: 100,
         }}
+        scroll={{x: '2000'}}
         pagination={{
           defaultPageSize: 5,
           showSizeChanger: true,
@@ -219,7 +230,7 @@ const QuestionList: React.FC = () => {
             <PlusOutlined /> 新增题目
           </Button>,
         ]}
-        request={fetchList}
+        request={fetchList as any}
         columns={columns}
         rowSelection={{
           onChange: (_, selectedRows) => {
@@ -254,35 +265,28 @@ const QuestionList: React.FC = () => {
           </Button>
         </FooterToolbar>
       )}
-      <CreateForm 
+      <CreateForm
         onCancel={() => {
           handleModalOpen(false);
         }}
         onSubmit={async (values) => {
-          handleAdd(values);
+          await handleAdd(values);
+          actionRef.current?.reloadAndRest?.();
           handleModalOpen(false);
         }}
-        visible={createModalOpen}    
-        />
+        visible={createModalOpen}
+      />
       <UpdateForm
-        onSubmit={async (value) => {
-          const success = await handleUpdate(value);
-          if (success) {
-            handleUpdateModalOpen(false);
-            setCurrentRow(undefined);
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
-          }
-        }}
         onCancel={() => {
           handleUpdateModalOpen(false);
-          if (!showDetail) {
-            setCurrentRow(undefined);
-          }
         }}
-        updateModalOpen={updateModalOpen}
-        values={currentRow || {}}
+        visible={updateModalOpen}
+        onSubmit={async (values) => {
+          await handleUpdate(values)
+          handleUpdateModalOpen(false)
+          actionRef.current?.reloadAndRest?.();
+        }}
+        origin={currentRow || {}}
       />
 
       <Drawer
@@ -295,7 +299,7 @@ const QuestionList: React.FC = () => {
         closable={false}
       >
         {currentRow?.title && (
-          <ProDescriptions<API.RuleListItem>
+          <ProDescriptions<API.QuestionVO>
             column={2}
             title={currentRow?.title}
             request={async () => ({
@@ -304,7 +308,7 @@ const QuestionList: React.FC = () => {
             params={{
               id: currentRow?.id,
             }}
-            columns={columns as ProDescriptionsItemProps<API.RuleListItem>[]}
+            columns={columns as ProDescriptionsItemProps<API.QuestionVO>[]}
           />
         )}
       </Drawer>

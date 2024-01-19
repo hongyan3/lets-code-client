@@ -8,7 +8,7 @@ import { Progress, Space, Tag } from 'antd';
 import Link from 'antd/es/typography/Link';
 import routes from 'config/routes';
 import route from 'mock/route';
-import React, { useRef, useState } from 'react';
+import React, { Key, useRef, useState } from 'react';
 
 const List: React.FC = () => {
   const fetchList = async (
@@ -18,7 +18,7 @@ const List: React.FC = () => {
     },
   ) => {
     const res = await getQuestionListUsingGet1({
-      ...params
+      ...params,
     })
     return {
       data: res.data?.records || [],
@@ -26,6 +26,7 @@ const List: React.FC = () => {
       total: res.data?.total || 0
     }
   }
+  const [expandedRowKeys, setExpandedRowKeys] = useState<readonly Key[]>([]);
   return (
     <PageContainer>
       <ProList<API.QuestionVO>
@@ -37,6 +38,7 @@ const List: React.FC = () => {
         size="large"
         split={false}
         rowKey="id"
+          expandable={{ expandedRowKeys, onExpandedRowsChange: setExpandedRowKeys }}
         metas={{
           id: {
             title: '题目ID',
@@ -54,7 +56,7 @@ const List: React.FC = () => {
           description: {
             title: '描述',
             dataIndex: 'description',
-            search: false
+            search: false,
           },
           subTitle: {
             title: '标签',
@@ -104,7 +106,7 @@ const List: React.FC = () => {
           },
         }}
         headerTitle='题目列表'
-        request={fetchList}
+        request={fetchList as any}
       // dataSource={data}
       />
     </PageContainer>
