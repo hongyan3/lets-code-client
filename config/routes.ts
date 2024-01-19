@@ -6,8 +6,9 @@ export default [
       { name: '登录', path: '/user/login', component: './User/Login' },
     ],
   },
-  { path: '/welcome', name: '欢迎', icon: 'smile', component: './Welcome' },
-  { name: '查询表格', icon: 'table', path: '/list', component: './TableList' },
+  { path: '/welcome', name: '主页', icon: 'homeOutlined', component: './Welcome' },
+  { name: '浏览题目', icon: 'fileTextOutlined', path: '/question/list', component: './Question/List' },
+  { name: '题目详情', hideInMenu: true, path: '/question/:id', component: './Question/Info' },
   {
     path: '/account/center',
     icon: 'user',
@@ -20,8 +21,8 @@ export default [
     icon: 'crown',
     access: 'canAdmin',
     routes: [
-      { path: '/admin', redirect: '/admin/sub-page' },
-      { path: '/admin/sub-page', name: '题目管理', component: './Admin' },
+      { path: '/admin', redirect: '/admin/questionList' },
+      { path: '/admin/questionList', name: '题目管理', component: './Admin/QuestionList' },
     ],
   },
   // 
