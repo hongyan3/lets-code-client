@@ -14,13 +14,16 @@ import 'ace-builds/src-noconflict/mode-java';
 import 'ace-builds/src-noconflict/theme-github';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-tomorrow';
+import { random } from 'lodash';
+import { getQuestionSubmitListUsingGet, submitQuestionUsingPost } from '@/services/Server/questionSubmitController';
 
 const Info: React.FC = () => {
   const [question, setQuestion] = useState<API.QuestionVO>();
-  const [language, setLanguage] = useState<string>('java');
+  const [language, setLanguage] = useState<string>('Java');
   const [mode, setMode] = useState<string>('acm');
   const [code, setCode] = useState<string>();
   const [theme, setTheme] = useState<string>('tomorrow');
+  const [loading,setLoading] = useState<boolean>(false)
   const params = useParams();
   const id = params.id as string;
   useEffect(() => {
@@ -48,8 +51,45 @@ const Info: React.FC = () => {
           size="middle"
           icon={<CloudUploadOutlined />}
           onClick={() => {
-            console.log(code);
+            setLoading(true)
+            submitQuestionUsingPost({
+              code,
+              language,
+              questionId: id
+            }).then(async res => {
+              if(res.code == 0) {
+                let id = res.data
+                let interval = setInterval(async () => {
+                  getQuestionSubmitListUsingGet({
+                    id
+                  }).then((res) => {
+                    let submit = res.data?.records
+                    switch(submit[0].status) {
+                      case 2:
+                        if (submit[0].judgeInfo?.message == 'Accepted') {
+                          message.success('提交通过')
+                        } else {
+                          message.warning('提交未通过')
+                        }
+                        clearInterval(interval)
+                        break
+                      case 3:
+                        message.warning('代码编译/运行错误')
+                        clearInterval(interval)
+                        break
+                      default:
+                        console.log('轮询中...');
+                    } 
+                    setLoading(false)             
+                  })
+                },500)
+              } else {
+                message.warning('提交失败')
+                setLoading(false)
+              }
+            })
           }}
+          loading={loading}
         >
           提交代码
         </Button>
@@ -72,7 +112,7 @@ const Info: React.FC = () => {
             </Space>
             {
               question?.description?.split("\n").map(e => (
-                <Paragraph>{e}</Paragraph>
+                <Paragraph key={e}>{e}</Paragraph>
               ))
             }
           </Typography>
